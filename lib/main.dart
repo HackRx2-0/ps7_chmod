@@ -5,9 +5,7 @@ import 'package:chmod/screens/homePage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-
-
-
+ListQueue<File> imagesQueue = ListQueue<File>();
 void main() {
   Future.delayed(Duration(milliseconds: 1)).then(
           (value) => SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
