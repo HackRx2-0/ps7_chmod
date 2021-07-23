@@ -1,11 +1,14 @@
 import 'dart:collection';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:chmod/screens/homePage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-ListQueue<File> imagesQueue = ListQueue<File>();
+ListQueue<Uint8List> imagesQueue = ListQueue<Uint8List>();
+late File mainImage;
+ValueNotifier<int> refreshVar = ValueNotifier(1);
 void main() {
   Future.delayed(Duration(milliseconds: 1)).then(
           (value) => SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(

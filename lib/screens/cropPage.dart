@@ -6,14 +6,13 @@ import 'dart:typed_data';
 
 import 'package:chmod/main.dart';
 import 'package:chmod/services/cropClass.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 class CropPage extends StatefulWidget {
-  File realImage;
+  Uint8List realImage;
 
   CropPage({Key? key, required this.realImage}) : super(key: key);
 
@@ -31,7 +30,7 @@ class _CropPageState extends State<CropPage> {
     if(firstTime) {
       firstTime = false;
       getEdges();
-      FileImage fileImage = FileImage(imagesQueue.last);
+      FileImage fileImage = FileImage(mainImage);
       // print(File(widget.realImage.path));
       ImageStream stream = fileImage.resolve(
           createLocalImageConfiguration(context));
@@ -49,11 +48,41 @@ class _CropPageState extends State<CropPage> {
     return imageInfo;
   }
 
+  Future<void> getVerification() async{
+    String base64Image = base64Encode(imagesQueue.last);
+    var url = Uri.parse('http://efa384aa620c.ngrok.io/nahar');
+    final response = await http.post(
+      url,
+      body: jsonEncode(
+        {
+          'image': base64Image,
+        },
+      ),
+      headers: {'Content-Type': "application/json"},
+    );
+    print('StatusCode : ${response.statusCode}');
+    print('Return Data : ${response.body}');
+    List<dynamic> points = jsonDecode(response.body);
+    print(points);
+    double width,height,imgHeight,imgWidth;
+    imgHeight = points[8].toDouble();
+    imgWidth = points[9].toDouble();
 
+    Size size = MediaQuery.of(context).size;
+    width = size.width-40;
+    height = imgHeight * width/imgWidth;
+
+    setState(() {
+      tl = Offset(width*points[0].toDouble()/imgWidth, height*points[1].toDouble()/imgHeight);
+      tr = Offset(width*points[2].toDouble()/imgWidth, height*points[3].toDouble()/imgHeight);
+      bl = Offset(width*points[4].toDouble()/imgWidth, height*points[5].toDouble()/imgHeight);
+      br = Offset(width*points[6].toDouble()/imgWidth, height*points[7].toDouble()/imgHeight);
+    });
+  }
 
 
   Future<void> getEdges() async{
-    String base64Image = base64Encode(imagesQueue.last.readAsBytesSync());
+    String base64Image = base64Encode(imagesQueue.last);
     var url = Uri.parse('http://10.0.2.2:5000/corner_detection');
     final response = await http.post(
       url,
@@ -99,7 +128,7 @@ class _CropPageState extends State<CropPage> {
     points[3] = [[imgWidth*br!.dx/width, imgHeight*br!.dy/height]];
     print(points);
 
-    String base64Image = base64Encode(imagesQueue.last.readAsBytesSync());
+    String base64Image = base64Encode(imagesQueue.last);
     var url = Uri.parse('http://10.0.2.2:5000/cropper');
 
     // final response = await Dio().post(
@@ -363,14 +392,9 @@ class _CropPageState extends State<CropPage> {
                                 )
                               ]
                           ),
-                          child: Image.file(
-                            File(
-                                widget.realImage.path
-                            ),
-                            key: key,
+                          child: Image.memory(widget.realImage,key: key,),
                           ),
                         ),
-                      ),
                       // GestureDetector(
                       //         onPanDown: (details) {
                       //           this.setState(() {

@@ -1,6 +1,14 @@
+import 'dart:collection';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:chmod/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:chmod/screens/editorPage.dart';
+
+import 'package:chmod/main.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -17,7 +25,40 @@ class _HomePageState extends State<HomePage> {
     XFile? image = await ImagePicker().pickImage(
       source: type == "Gallery" ? ImageSource.gallery : ImageSource.camera,
     );
+    imagesQueue = ListQueue<Uint8List>();
+    if(image != null) {
+      mainImage = File(image.path);
+      await Navigator.push(
+          context,
+          PageRouteBuilder(
+              transitionDuration:
+              Duration(milliseconds: 250),
+              reverseTransitionDuration:
+              Duration(milliseconds: 150),
+              transitionsBuilder:
+                  (BuildContext context,
+                  Animation<double>
+                  animation,
+                  Animation<double>
+                  secAnimation,
+                  Widget child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              pageBuilder: (BuildContext
+              context,
+                  Animation<double> animation,
+                  Animation<double> secAnimation) {
+                // return cropPage(realImage: image!,);
+                // return CropPage(realImage: File(image!.path),);
+                return EditorPage(realImage:File(image.path).readAsBytesSync());
+              }
+          )
+      );
     }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,3 +169,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+
+

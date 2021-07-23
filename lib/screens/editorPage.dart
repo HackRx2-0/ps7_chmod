@@ -1,14 +1,21 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:animations/animations.dart';
 import 'package:chmod/main.dart';
+import 'package:chmod/screens/EnhancePage.dart';
+import 'package:chmod/screens/adjustPage.dart';
 import 'package:chmod/screens/cropPage.dart';
+import 'package:chmod/screens/filtersPage.dart';
+import 'package:chmod/screens/morphPage.dart';
+import 'package:chmod/screens/rotatePage.dart';
+import 'package:chmod/screens/savePage.dart';
 import 'package:chmod/services/optionListItem.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class EditorPage extends StatefulWidget {
-  File realImage;
+  Uint8List realImage;
   EditorPage({Key? key,required this.realImage}) : super(key: key);
 
   @override
@@ -19,11 +26,11 @@ class _EditorPageState extends State<EditorPage> {
   final GlobalKey key = GlobalKey();
 
   Widget _buildFront() {
-    print("Building Front $imagesQueue");
+    print("Building Front ${imagesQueue.length}");
     return  Container(
       key: ValueKey(0),
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Image.file(
+      child: Image.memory(
         imagesQueue.last,
         key: ValueKey(0),
       ),
@@ -35,7 +42,7 @@ class _EditorPageState extends State<EditorPage> {
       // color: Colors.amber,
       key: ValueKey(1),
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Image.file(
+      child: Image.memory(
         widget.realImage,
         key: ValueKey(1),
       ),
@@ -65,7 +72,7 @@ class _EditorPageState extends State<EditorPage> {
             ),
             onPressed: () {
               setState(() {
-                if(imagesQueue.first == imagesQueue.last){
+                if(imagesQueue.length == 1){
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text("This is the original image.\nUndo not available."),
                   ));
@@ -82,8 +89,39 @@ class _EditorPageState extends State<EditorPage> {
               size: 20,
               color: Colors.white,
             ),
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
+              File('my_image.jpg').writeAsBytes(imagesQueue.last);
+
+              await Navigator.push(
+              context,
+              PageRouteBuilder(
+                transitionDuration:
+                Duration(milliseconds: 250),
+                reverseTransitionDuration:
+                Duration(milliseconds: 150),
+                transitionsBuilder:
+                (BuildContext context,
+                Animation<double>
+                animation,
+                Animation<double>
+                secAnimation,
+                Widget child)
+                {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+                pageBuilder: (BuildContext
+                  context,
+                  Animation<double> animation,
+                  Animation<double> secAnimation) {
+                  // return cropPage(realImage: image!,);
+                  // return CropPage(realImage: File(image!.path),);
+                  return SavePage(realImg:imagesQueue.last);
+                }
+              )
+              );
             },
           ),
         ],
@@ -101,17 +139,25 @@ class _EditorPageState extends State<EditorPage> {
         children: [
           Expanded(
             flex: 20,
-            child: Container(
-              height: size.height*0.7,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.all(Radius.circular(size.width/10)),
-                // borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-              ),
-              child: FlipCard(
-                front: _buildFront(),
-                back: _buildRear(),
+            child: Hero(
+  tag: 1,
+              child: Container(
+                height: size.height*0.7,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(size.width/10)),
+                  // borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                ),
+                child: ValueListenableBuilder(
+                    valueListenable: refreshVar,
+                    builder: (context, dynamic val, child) {
+                      return FlipCard(
+                        front: _buildFront(),
+                        back: _buildRear(),
+                      );
+                    },
+                ),
               ),
             ),
           ),
@@ -148,8 +194,8 @@ class _EditorPageState extends State<EditorPage> {
                     closedElevation: 0,
                     openElevation: 0,
                     openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
+                    transitionDuration: Duration(milliseconds: 700),
+                    openBuilder: (context, _) => RotatePage(realImage: imagesQueue.last,),
                     closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
                       // onPress: ((){}),
                       iconName: FontAwesomeIcons.syncAlt,
@@ -166,8 +212,8 @@ class _EditorPageState extends State<EditorPage> {
                     closedElevation: 0,
                     openElevation: 0,
                     openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
+                    transitionDuration: Duration(milliseconds: 700),
+                    openBuilder: (context, _) => AdjustPage(realImage: imagesQueue.last,),
                     closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
                       // onPress: ((){}),
                       iconName: FontAwesomeIcons.slidersH,
@@ -184,8 +230,8 @@ class _EditorPageState extends State<EditorPage> {
                     closedElevation: 0,
                     openElevation: 0,
                     openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
+                    transitionDuration: Duration(milliseconds: 700),
+                    openBuilder: (context, _) => EnhancePage(realImage: imagesQueue.last,),
                     closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
                       // onPress: ((){}),
                       iconName: FontAwesomeIcons.solidStar,
@@ -202,8 +248,41 @@ class _EditorPageState extends State<EditorPage> {
                     closedElevation: 0,
                     openElevation: 0,
                     openColor: Colors.transparent,
+                    transitionDuration: Duration(milliseconds: 700),
+                    openBuilder: (context, _) => EnhancePage(realImage: imagesQueue.last,),
+                    closedBuilder: (context, VoidCallback openContainer) => Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.filter_b_and_w,
+                          size: 30,
+                          color: Colors.white,
+                        ),
+                        FittedBox(
+                          fit: BoxFit.cover,
+                          child: Text(
+                            "BW",
+                            style: TextStyle(
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  width: size.width/5,
+                  padding: EdgeInsets.symmetric(horizontal: 15),
+                  child: OpenContainer(
+                    transitionType: ContainerTransitionType.fade,
+                    closedColor: Colors.transparent,
+                    closedElevation: 0,
+                    openElevation: 0,
+                    openColor: Colors.transparent,
                     transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
+                    openBuilder: (context, _) => FiltersPage(realImage: imagesQueue.last,),
                     closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
                       // onPress: ((){}),
                       iconName: FontAwesomeIcons.magic,
@@ -220,48 +299,12 @@ class _EditorPageState extends State<EditorPage> {
                     closedElevation: 0,
                     openElevation: 0,
                     openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
-                    closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
-                      // onPress: ((){}),
-                      iconName: FontAwesomeIcons.tint,
-                      text: "Morph",
-                    ),
-                  ),
-                ),
-                Container(
-                  width: size.width/5,
-                  padding: EdgeInsets.symmetric(horizontal: 15),
-                  child: OpenContainer(
-                    transitionType: ContainerTransitionType.fade,
-                    closedColor: Colors.transparent,
-                    closedElevation: 0,
-                    openElevation: 0,
-                    openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
+                    transitionDuration: Duration(milliseconds: 700),
+                    openBuilder: (context, _) => MorphPage(realImage:imagesQueue.last,),
                     closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
                       // onPress: ((){}),
                       iconName: FontAwesomeIcons.palette,
-                      text: "Effects",
-                    ),
-                  ),
-                ),
-                Container(
-                  width: size.width/5,
-                  padding: EdgeInsets.symmetric(horizontal: 15),
-                  child: OpenContainer(
-                    transitionType: ContainerTransitionType.fade,
-                    closedColor: Colors.transparent,
-                    closedElevation: 0,
-                    openElevation: 0,
-                    openColor: Colors.transparent,
-                    transitionDuration: Duration(seconds: 1),
-                    openBuilder: (context, _) => CropPage(realImage: widget.realImage,),
-                    closedBuilder: (context, VoidCallback openContainer) => OptionsListItem(size: size,
-                      // onPress: ((){}),
-                      iconName: FontAwesomeIcons.solidComment,
-                      text: "Text",
+                      text: "Morph",
                     ),
                   ),
                 ),
